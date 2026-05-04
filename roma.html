@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Roma 🇮🇹 Mayo 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --cream: #FBF5ED;
+      --cream2: #F4EBD8;
+      --terra: #C94F2C;
+      --green: #2D5A3D;
+      --blue: #3B5B8C;
+      --gold: #C9991A;
+      --gold-bg: #D4A843;
+      --dark: #2C2116;
+      --muted: #8C7B6B;
+      --white: #FFFDF9;
+      --border: rgba(44,33,22,0.11);
+      --shadow: 0 2px 12px rgba(44,33,22,0.08);
+      --day0: #C9991A;
+      --day1: #C94F2C;
+      --day2: #2D5A3D;
+      --day3: #3B5B8C;
+    }
+
+    html, body {
+      height: 100%; background: #D6C8B5;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--dark);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      max-width: 430px; margin: 0 auto; height: 100%;
+      background: var(--cream);
+      display: flex; flex-direction: column;
+      position: relative; overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,0,0,0.25);
+    }
+
+    /* ── HEADER ── */
+    .app-header {
+      background: var(--dark); padding: 18px 20px 14px;
+      flex-shrink: 0; position: relative; overflow: hidden;
+    }
+    .app-header::after {
+      content:''; position:absolute; bottom:-30px; right:-30px;
+      width:100px; height:100px; border-radius:50%;
+      background: var(--terra); opacity:.18;
+    }
+    .app-header::before {
+      content:'ROMA'; position:absolute; right:14px; top:8px;
+      font-family:'Cormorant Garamond',serif; font-size:52px;
+      color:rgba(255,255,255,0.04); font-weight:700; letter-spacing:-2px;
+      pointer-events:none;
+    }
+    .hdr-eyebrow {
+      font-size:10px; letter-spacing:3px; text-transform:uppercase;
+      color: var(--gold-bg); font-weight:500; margin-bottom:3px;
+    }
+    .hdr-title {
+      font-family:'Cormorant Garamond',serif; font-size:32px;
+      color: var(--white); line-height:1; font-weight:600;
+    }
+    .hdr-sub { font-size:11px; color:rgba(255,255,255,0.45); margin-top:4px; }
+
+    /* ── LAYOUT ── */
+    .main-content { flex:1; overflow:hidden; position:relative; }
+    .section {
+      position:absolute; inset:0; overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      display:none; padding-bottom:76px;
+    }
+    .section.active { display:block; }
+    ::-webkit-scrollbar { width:0; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      display:flex; background:var(--white);
+      border-top:1px solid var(--border);
+      flex-shrink:0; padding-bottom:env(safe-area-inset-bottom);
+    }
+    .nav-btn {
+      flex:1; display:flex; flex-direction:column; align-items:center;
+      padding:9px 2px 7px; gap:3px; cursor:pointer;
+      border:none; background:none; color:var(--muted);
+      transition:color .2s; font-family:'DM Sans',sans-serif;
+    }
+    .nav-btn.active { color:var(--terra); }
+    .nav-btn .ni { font-size:19px; }
+    .nav-btn .nl { font-size:9px; letter-spacing:.4px; font-weight:500; }
+
+    /* ── SHARED COMPONENTS ── */
+    .sticky-bar {
+      position:sticky; top:0; z-index:10;
+      background:var(--white); border-bottom:1px solid var(--border);
+    }
+    .sec-head { padding:18px 16px 10px; }
+    .sec-title { font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; }
+    .sec-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+
+    .day-tabs { display:flex; }
+    .dtab {
+      flex:1; padding:12px 4px; text-align:center; cursor:pointer;
+      border:none; background:none; font-family:'DM Sans',sans-serif;
+      font-size:11px; font-weight:500; color:var(--muted);
+      border-bottom:2.5px solid transparent; transition:all .2s;
+    }
+    .dtab.active { color:var(--dark); }
+
+    /* ── ITINERARIO ── */
+    .timeline { padding:18px 16px 8px; }
+    .tl-item { display:flex; gap:10px; position:relative; }
+    .tl-item:not(:last-child) .tl-line {
+      position:absolute; left:31px; top:38px; bottom:-14px;
+      width:1px; background:var(--border);
+    }
+    .tl-left {
+      width:52px; flex-shrink:0;
+      display:flex; flex-direction:column; align-items:center; padding-top:10px;
+    }
+    .tl-time { font-size:11px; font-weight:500; color:var(--muted); white-space:nowrap; }
+    .tl-dot {
+      width:14px; height:14px; border-radius:50%; margin-top:7px;
+      border:2px solid var(--dot-c, var(--terra)); background:var(--cream);
+    }
+    .tl-dot.fill { background:var(--dot-c, var(--terra)); }
+    .tl-card {
+      flex:1; background:var(--white); border-radius:12px;
+      padding:11px 13px; margin-bottom:14px;
+      border:1px solid var(--border); box-shadow:var(--shadow);
+      animation: fadeUp .3s ease both;
+    }
+    .tl-ch { display:flex; align-items:flex-start; gap:8px; margin-bottom:3px; }
+    .tl-icon { font-size:17px; flex-shrink:0; margin-top:1px; }
+    .tl-name {
+      font-family:'Cormorant Garamond',serif; font-size:17px;
+      font-weight:600; line-height:1.2; flex:1;
+    }
+    .tl-detail { font-size:12px; color:var(--muted); line-height:1.4; }
+    .tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+    .tag {
+      font-size:10px; padding:3px 8px; border-radius:20px;
+      font-weight:500; display:inline-flex; align-items:center; gap:3px;
+    }
+    .tg-price { background:rgba(201,153,26,.13); color:#8A6A00; }
+    .tg-free  { background:rgba(45,90,61,.11);  color:var(--green); }
+    .tg-warn  { background:rgba(201,79,44,.11);  color:var(--terra); }
+    .tg-ok    { background:rgba(45,90,61,.11);  color:var(--green); }
+    .tg-walk  { background:rgba(44,33,22,.07);  color:var(--muted); }
+    .tg-map   { background:rgba(59,91,140,.1);  color:var(--blue);
+                text-decoration:none; cursor:pointer; }
+
+    /* ── MAPA ── */
+    .map-ctrl { padding:12px 14px; }
+    .map-toggle {
+      display:flex; background:var(--cream); border-radius:8px; padding:3px;
+    }
+    .tog-btn {
+      flex:1; padding:7px; border:none; background:none; border-radius:6px;
+      font-family:'DM Sans',sans-serif; font-size:12px; font-weight:500;
+      color:var(--muted); cursor:pointer; transition:all .2s;
+    }
+    .tog-btn.active {
+      background:var(--white); color:var(--dark);
+      box-shadow:0 1px 4px rgba(0,0,0,.1);
+    }
+    .map-day-btns { display:flex; gap:6px; margin-top:8px; overflow-x:auto; padding-bottom:2px; }
+    .mdb {
+      padding:5px 12px; border-radius:20px; border:1.5px solid var(--border);
+      background:none; font-size:11px; font-weight:500; color:var(--muted);
+      cursor:pointer; white-space:nowrap; font-family:'DM Sans',sans-serif; transition:all .2s;
+    }
+    .mdb.active { color:#fff; border-color:transparent; }
+    #map { height:calc(100dvh - 310px); min-height:280px; }
+    .map-legend {
+      padding:10px 14px; display:flex; gap:14px; flex-wrap:wrap;
+      background:var(--white); border-top:1px solid var(--border);
+    }
+    .leg-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+    .leg-dot { width:9px; height:9px; border-radius:50%; }
+
+    /* ── RESTAURANTES ── */
+    .rest-list { padding:12px 14px; }
+    .rest-card {
+      background:var(--white); border-radius:12px; padding:14px;
+      margin-bottom:10px; border:1px solid var(--border); box-shadow:var(--shadow);
+      animation: fadeUp .3s ease both;
+    }
+    .rest-assigned {
+      font-size:10px; color:var(--green); font-weight:500;
+      margin-bottom:6px; display:flex; align-items:center; gap:4px;
+    }
+    .rest-row { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+    .rest-name { font-family:'Cormorant Garamond',serif; font-size:17px; font-weight:600; }
+    .rest-type { font-size:11px; color:var(--muted); margin-top:1px; }
+    .rest-zone { font-size:11px; color:var(--muted); margin-top:1px; }
+    .rest-price { font-size:14px; color:var(--gold); font-weight:600; flex-shrink:0; }
+    .rest-badge {
+      display:inline-flex; align-items:center; gap:3px; margin-top:6px;
+      font-size:10px; padding:2px 8px; border-radius:20px; font-weight:500;
+    }
+    .rb-warn { background:rgba(201,79,44,.1); color:var(--terra); }
+    .rest-actions { display:flex; gap:7px; margin-top:10px; }
+    .rest-btn {
+      flex:1; padding:8px 6px; border-radius:8px; border:1.5px solid var(--border);
+      background:none; font-size:11px; font-weight:500; color:var(--dark);
+      cursor:pointer; font-family:'DM Sans',sans-serif;
+      text-decoration:none; text-align:center; display:block; transition:all .15s;
+    }
+    .rest-btn.maps   { border-color:var(--blue);  color:var(--blue); }
+    .rest-btn.reserva{ border-color:var(--terra); color:var(--terra); }
+    .prox-btn {
+      margin-top:10px; padding:8px 14px; background:var(--terra); color:#fff;
+      border:none; border-radius:8px; font-size:12px; font-weight:500;
+      font-family:'DM Sans',sans-serif; cursor:pointer;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+
+    /* ── INFO ── */
+    .info-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:11px; padding:14px;
+    }
+    .info-card {
+      background:var(--white); border-radius:16px; padding:20px 14px;
+      text-align:center; border:1px solid var(--border); cursor:pointer;
+      box-shadow:var(--shadow); transition:transform .15s;
+      animation: fadeUp .3s ease both;
+    }
+    .info-card:active { transform:scale(.96); }
+    .info-icon { font-size:30px; margin-bottom:8px; }
+    .info-lbl { font-size:12px; font-weight:500; line-height:1.35; white-space:pre-line; }
+
+    /* ── MODAL ── */
+    .modal-ov {
+      position:fixed; inset:0; background:rgba(44,33,22,.55);
+      z-index:200; display:flex; align-items:flex-end;
+      backdrop-filter:blur(4px);
+      opacity:0; pointer-events:none; transition:opacity .25s;
+    }
+    .modal-ov.open { opacity:1; pointer-events:auto; }
+    .modal-sheet {
+      max-width:430px; width:100%; background:var(--cream);
+      border-radius:20px 20px 0 0; max-height:80dvh; overflow-y:auto;
+      transform:translateY(100%); transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    .modal-ov.open .modal-sheet { transform:translateY(0); }
+    .modal-handle {
+      width:36px; height:4px; border-radius:2px;
+      background:rgba(44,33,22,.18); margin:12px auto 0;
+    }
+    .modal-body { padding:14px 20px 36px; }
+    .modal-title {
+      font-family:'Cormorant Garamond',serif; font-size:21px; font-weight:600;
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+    }
+    .modal-close {
+      margin-left:auto; background:none; border:none;
+      font-size:18px; cursor:pointer; color:var(--muted);
+    }
+    .m-block { margin-bottom:14px; }
+    .m-block-title { font-size:13px; font-weight:500; margin-bottom:4px; }
+    .m-block-text { font-size:13px; color:var(--muted); line-height:1.6; }
+    .m-block-text strong { color:var(--dark); }
+    .m-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:8px 0; border-bottom:1px solid var(--border); font-size:13px;
+    }
+    .m-row:last-child { border-bottom:none; }
+    .m-row-l { color:var(--muted); }
+    .m-row-r { font-weight:500; }
+
+    /* ── CHECKLIST ── */
+    .ck-head-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:4px 16px 10px;
+    }
+    .ck-progress-text { font-size:11px; color:var(--muted); }
+    .ck-bar-wrap { height:3px; background:var(--border); margin:0 16px 14px; border-radius:2px; }
+    .ck-bar { height:100%; border-radius:2px; background:var(--terra); transition:width .3s; }
+    .ck-list { padding:0 14px; }
+    .ck-group { margin-bottom:20px; }
+    .ck-group-title {
+      font-size:10px; font-weight:500; letter-spacing:2px;
+      text-transform:uppercase; color:var(--muted); margin-bottom:7px;
+    }
+    .ck-item {
+      display:flex; align-items:center; gap:11px; padding:11px 13px;
+      background:var(--white); border-radius:10px; margin-bottom:5px;
+      border:1px solid var(--border); cursor:pointer; transition:opacity .2s;
+    }
+    .ck-item.done { opacity:.45; }
+    .ck-box {
+      width:20px; height:20px; border-radius:6px;
+      border:2px solid var(--border); flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; transition:all .2s;
+    }
+    .ck-item.done .ck-box { background:var(--terra); border-color:var(--terra); color:#fff; }
+    .ck-icon { font-size:17px; }
+    .ck-label { font-size:14px; flex:1; }
+    .ck-item.done .ck-label { text-decoration:line-through; }
+
+    /* ── TIEMPO ── */
+    .wx-wrap { padding:14px; }
+    .wx-card {
+      background:var(--white); border-radius:16px; padding:18px;
+      margin-bottom:11px; border:1px solid var(--border); box-shadow:var(--shadow);
+      animation: fadeUp .3s ease both;
+    }
+    .wx-day { font-size:10px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:3px; }
+    .wx-date { font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; margin-bottom:12px; }
+    .wx-main { display:flex; align-items:center; gap:14px; }
+    .wx-ico { font-size:46px; }
+    .wx-desc { font-size:14px; font-weight:500; margin-bottom:4px; }
+    .wx-temps { display:flex; gap:12px; font-size:13px; }
+    .wx-hi { color:var(--terra); font-weight:500; }
+    .wx-lo { color:var(--blue); }
+    .wx-tip {
+      margin-top:11px; padding:8px 12px; background:var(--cream);
+      border-radius:8px; font-size:12px; color:var(--muted); line-height:1.5;
+    }
+    .wx-loading { text-align:center; padding:40px 20px; color:var(--muted); font-size:14px; line-height:1.6; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header class="app-header">
+    <div class="hdr-eyebrow">🇮🇹 Viaje en pareja</div>
+    <div class="hdr-title">Roma</div>
+    <div class="hdr-sub">8 – 11 mayo 2025 &nbsp;·&nbsp; Hotel Sonia, Termini</div>
+  </header>
+
+  <div class="main-content">
+
+    <!-- ITINERARIO -->
+    <section id="s-itinerario" class="section active">
+      <div class="sticky-bar">
+        <div class="day-tabs" id="day-tabs"></div>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+
+    <!-- MAPA -->
+    <section id="s-mapa" class="section">
+      <div class="sticky-bar">
+        <div class="map-ctrl">
+          <div class="map-toggle">
+            <button class="tog-btn active" id="tog-all" onclick="setMapMode('all')">Todos los días</button>
+            <button class="tog-btn" id="tog-day" onclick="setMapMode('day')">Por día</button>
+          </div>
+          <div class="map-day-btns" id="map-day-btns" style="display:none"></div>
+        </div>
+      </div>
+      <div id="map"></div>
+      <div class="map-legend" id="map-legend"></div>
+    </section>
+
+    <!-- RESTAURANTES -->
+    <section id="s-restaurantes" class="section">
+      <div class="sticky-bar">
+        <div class="sec-head">
+          <div class="sec-title">Dónde comer</div>
+          <div class="sec-sub" id="rest-sub">Todos los sitios de la lista</div>
+          <button class="prox-btn" onclick="sortByProx()">📍 Ordenar por proximidad</button>
+        </div>
+      </div>
+      <div class="rest-list" id="rest-list"></div>
+    </section>
+
+    <!-- INFO -->
+    <section id="s-info" class="section">
+      <div class="sticky-bar">
+        <div class="sec-head">
+          <div class="sec-title">Info útil</div>
+          <div class="sec-sub">Toca para ampliar</div>
+        </div>
+      </div>
+      <div class="info-grid" id="info-grid"></div>
+    </section>
+
+    <!-- CHECKLIST -->
+    <section id="s-checklist" class="section">
+      <div class="sticky-bar">
+        <div class="day-tabs" id="ck-tabs"></div>
+        <div class="ck-head-row">
+          <span class="ck-progress-text" id="ck-prog"></span>
+        </div>
+        <div class="ck-bar-wrap"><div class="ck-bar" id="ck-bar"></div></div>
+      </div>
+      <div class="ck-list" id="ck-list"></div>
+    </section>
+
+    <!-- TIEMPO -->
+    <section id="s-tiempo" class="section">
+      <div class="sticky-bar">
+        <div class="sec-head">
+          <div class="sec-title">El tiempo en Roma</div>
+          <div class="sec-sub">Previsión en tiempo real</div>
+        </div>
+      </div>
+      <div class="wx-wrap" id="wx-wrap">
+        <div class="wx-loading">⏳ Cargando previsión...</div>
+      </div>
+    </section>
+
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="go('itinerario')">
+      <span class="ni">📅</span><span class="nl">Plan</span>
+    </button>
+    <button class="nav-btn" onclick="go('mapa')">
+      <span class="ni">🗺️</span><span class="nl">Mapa</span>
+    </button>
+    <button class="nav-btn" onclick="go('restaurantes')">
+      <span class="ni">🍽️</span><span class="nl">Comer</span>
+    </button>
+    <button class="nav-btn" onclick="go('info')">
+      <span class="ni">ℹ️</span><span class="nl">Info</span>
+    </button>
+    <button class="nav-btn" onclick="go('checklist')">
+      <span class="ni">✅</span><span class="nl">Mochila</span>
+    </button>
+    <button class="nav-btn" onclick="go('tiempo')">
+      <span class="ni">⛅</span><span class="nl">Tiempo</span>
+    </button>
+  </nav>
+</div>
+
+<!-- MODAL -->
+<div class="modal-ov" id="modal-ov" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════
+
+const DC = ['#C9991A','#C94F2C','#2D5A3D','#3B5B8C'];
+const DN = ['Viernes 8 mayo','Sábado 9 mayo','Domingo 10 mayo','Lunes 11 mayo'];
+const DS = ['Vie 8','Sáb 9','Dom 10','Lun 11'];
+
+const ITINERARY = [
+  // ── VIERNES 8 ──
+  {day:0,time:'13:55',icon:'✈️',name:'Aterrizaje en Fiumicino',type:'transport',
+   detail:'Leonardo Express → Termini (~35 min)',price:'~15 €/persona',
+   booking:false,reserved:true,walk:null,
+   maps:'https://maps.google.com/?q=Aeropuerto+Leonardo+da+Vinci+Fiumicino',
+   coords:[41.7999,12.2462]},
+  {day:0,time:'15:00',icon:'🏨',name:'Check-in Hotel Sonia',type:'hotel',
+   detail:'Via del Viminale · Dejar maletas y refrescar',price:null,
+   booking:false,reserved:false,walk:null,
+   maps:'https://maps.google.com/?q=Hotel+Sonia+Via+del+Viminale+Roma',
+   coords:[41.8975,12.5013]},
+  {day:0,time:'15:30',icon:'🍴',name:'Mercato Centrale Termini',type:'food',
+   detail:'Almuerzo · Al lado del hotel · Imprescindible',price:'~10-15 €',
+   booking:false,reserved:false,walk:'2 min desde el hotel',
+   maps:'https://maps.google.com/?q=Mercato+Centrale+Roma+Termini',
+   coords:[41.9009,12.4994]},
+  {day:0,time:'16:30',icon:'📍',name:'Piazza di Spagna + Escalinata',type:'visit',
+   detail:'Zona Tridente · Icono romano',price:'Gratuito',
+   booking:false,reserved:false,walk:'30 min desde el hotel',
+   maps:'https://maps.google.com/?q=Piazza+di+Spagna+Roma',
+   coords:[41.9059,12.4823]},
+  {day:0,time:'17:30',icon:'⛲',name:'Fontana di Trevi',type:'visit',
+   detail:'La fuente más famosa de Roma · Mejor de tarde',price:'Gratuito',
+   booking:false,reserved:false,walk:'15 min desde Spagna',
+   maps:'https://maps.google.com/?q=Fontana+di+Trevi+Roma',
+   coords:[41.9009,12.4833]},
+  {day:0,time:'18:30',icon:'🥂',name:'Pausa / aperitivo',type:'break',
+   detail:'Zona centro histórico · Sin compromiso',price:null,
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:0,time:'20:30',icon:'🍽️',name:'Cena',type:'food',
+   detail:'Por definir',price:null,
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+
+  // ── SÁBADO 9 ──
+  {day:1,time:'09:00',icon:'☕',name:'Desayuno',type:'food',
+   detail:'Bar cerca del hotel · Por definir',price:'~3-5 €',
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:1,time:'09:30',icon:'🏛️',name:'Foro Romano (exterior)',type:'visit',
+   detail:'Paseo previo al tour por el recinto',price:'Gratuito',
+   booking:false,reserved:false,walk:'38 min desde el hotel',
+   maps:'https://maps.google.com/?q=Foro+Romano+Roma',
+   coords:[41.8925,12.4853]},
+  {day:1,time:'11:00',icon:'🏟️',name:'Tour Coliseo + Arena + Foro + Palatino',type:'visit',
+   detail:'Visita guiada · 3 horas · Acceso a la arena',price:'Entrada incluida',
+   booking:false,reserved:true,walk:'5 min desde el Foro',
+   maps:'https://maps.google.com/?q=Colosseo+Roma',
+   coords:[41.8902,12.4924]},
+  {day:1,time:'14:15',icon:'🫓',name:'Trapizzino',type:'food',
+   detail:'Almuerzo · Bocata típico romano · Testaccio',price:'~8-12 €',
+   booking:false,reserved:false,walk:'15 min desde el Coliseo',
+   maps:'https://maps.google.com/?q=Trapizzino+Testaccio+Roma',
+   coords:[41.8784,12.4762]},
+  {day:1,time:'15:30',icon:'🌳',name:'Giardino degli Aranci + Buco della serratura',type:'visit',
+   detail:'Aventino · Vistas panorámicas y el famoso ojo de cerradura hacia el Vaticano',price:'Gratuito',
+   booking:false,reserved:false,walk:'20 min desde Testaccio',
+   maps:'https://maps.google.com/?q=Giardino+degli+Aranci+Roma',
+   coords:[41.8833,12.4804]},
+  {day:1,time:'16:30',icon:'🌿',name:'Trastevere',type:'visit',
+   detail:'El barrio más auténtico de Roma · Callejear sin prisa',price:'Gratuito',
+   booking:false,reserved:false,walk:'15 min desde Aventino',
+   maps:'https://maps.google.com/?q=Trastevere+Roma',
+   coords:[41.8879,12.4691]},
+  {day:1,time:'18:30',icon:'🥂',name:'Pausa / aperitivo',type:'break',
+   detail:'Trastevere · Sin compromiso',price:null,
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:1,time:'20:00',icon:'🍽️',name:'Cena',type:'food',
+   detail:'Trastevere · Por definir',price:null,
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:1,time:'21:30',icon:'🌆',name:'Gianicolo',type:'visit',
+   detail:'Mejor mirador nocturno de Roma',price:'Gratuito',
+   booking:false,reserved:false,walk:'10 min desde Trastevere',
+   maps:'https://maps.google.com/?q=Gianicolo+Roma',
+   coords:[41.8893,12.4659]},
+
+  // ── DOMINGO 10 ──
+  {day:2,time:'09:00',icon:'☕',name:'Desayuno',type:'food',
+   detail:'Por definir',price:'~3-5 €',
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:2,time:'10:00',icon:'🏛️',name:'Panteón',type:'visit',
+   detail:'El edificio mejor conservado de la Roma antigua',price:'5 €',
+   booking:true,reserved:false,walk:'30 min desde el hotel',
+   maps:'https://maps.google.com/?q=Pantheon+Roma',
+   coords:[41.8986,12.4769]},
+  {day:2,time:'11:00',icon:'⛲',name:'Plaza Navona',type:'visit',
+   detail:'Fuentes barrocas de Bernini · Ambiente muy animado',price:'Gratuito',
+   booking:false,reserved:false,walk:'5 min desde el Panteón',
+   maps:'https://maps.google.com/?q=Piazza+Navona+Roma',
+   coords:[41.8992,12.4730]},
+  {day:2,time:'13:00',icon:'🍴',name:'Osteria da Fortunata',type:'food',
+   detail:'Almuerzo · 2 min del Panteón · Imprescindible',price:'~20-30 €',
+   booking:true,reserved:false,walk:'2 min desde Navona',
+   maps:'https://maps.google.com/?q=Osteria+da+Fortunata+Roma',
+   coords:[41.8981,12.4765]},
+  {day:2,time:'14:30',icon:'🛋️',name:'Tarde libre / descanso',type:'break',
+   detail:'Vuelta al hotel antes del tour nocturno',price:null,
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:2,time:'18:00',icon:'🔦',name:'Free tour: Misterios y leyendas de Roma',type:'visit',
+   detail:"Sale de Piazza del Popolo · En español · ~2h30 · Termina en Ponte Sant'Angelo",
+   price:'Gratuito (propina al guía)',
+   booking:false,reserved:true,walk:'Metro A: Termini → Flaminio',
+   maps:'https://maps.google.com/?q=Piazza+del+Popolo+Roma',
+   coords:[41.9114,12.4762]},
+  {day:2,time:'20:30',icon:'🍽️',name:'Cena',type:'food',
+   detail:'Zona Prati · Por definir',price:null,
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+
+  // ── LUNES 11 ──
+  {day:3,time:'09:00',icon:'☕',name:'Desayuno',type:'food',
+   detail:'Bar cerca del hotel · Por definir',price:'~3-5 €',
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:3,time:'10:00',icon:'🛍️',name:'Mañana libre',type:'break',
+   detail:'Paseo y compras · Zona Termini / Via Nazionale',price:null,
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:3,time:'12:30',icon:'🍕',name:'La Masardona',type:'food',
+   detail:'Almuerzo · Pizza frita · Imprescindible',price:'~8-12 €',
+   booking:false,reserved:false,walk:'10 min desde el hotel',
+   maps:'https://maps.google.com/?q=La+Masardona+Roma',
+   coords:[41.9040,12.5079]},
+  {day:3,time:'13:30',icon:'🏨',name:'Recogida de maletas + salida',type:'hotel',
+   detail:'Hotel Sonia',price:null,
+   booking:false,reserved:false,walk:null,maps:null,coords:null},
+  {day:3,time:'13:50',icon:'🚆',name:'Leonardo Express → Fiumicino',type:'transport',
+   detail:'Desde Roma Termini · ~35 min',price:'~15 €/persona',
+   booking:false,reserved:true,walk:null,
+   maps:'https://maps.google.com/?q=Roma+Termini',
+   coords:[41.9009,12.5008]},
+  {day:3,time:'16:15',icon:'✈️',name:'Vuelo Roma → Madrid',type:'transport',
+   detail:'Llegada a Madrid a las 18:50',price:null,
+   booking:false,reserved:true,walk:null,maps:null,coords:null},
+];
+
+const RESTAURANTS = [
+  {name:'Mercato Centrale Termini',type:'Mercado gastronómico',zone:'Termini',price:'€€',
+   reserva:false,maps:'https://maps.google.com/?q=Mercato+Centrale+Roma+Termini',
+   url:'https://www.mercatocentrale.com/roma/',
+   coords:[41.9009,12.4994],assigned:'Viernes — Almuerzo ⭐'},
+  {name:'Trapizzino',type:'Bocata típico romano',zone:'Testaccio',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Trapizzino+Testaccio+Roma',
+   url:null,coords:[41.8784,12.4762],assigned:'Sábado — Almuerzo'},
+  {name:'Osteria da Fortunata',type:'Trattoria romana',zone:'Centro histórico (Panteón)',price:'€€',
+   reserva:true,maps:'https://maps.google.com/?q=Osteria+da+Fortunata+Roma',
+   url:'https://www.thefork.es/restaurante/osteria-da-fortunata-r794012',
+   coords:[41.8981,12.4765],assigned:'Domingo — Almuerzo ⭐'},
+  {name:'La Masardona',type:'Pizza frita napolitana',zone:'Via Tiburtina (cerca Termini)',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=La+Masardona+Roma',
+   url:null,coords:[41.9040,12.5079],assigned:'Lunes — Almuerzo ⭐'},
+  {name:'Da Enzo al 29',type:'Trattoria romana',zone:'Trastevere',price:'€€',
+   reserva:true,maps:'https://maps.google.com/?q=Da+Enzo+al+29+Roma',
+   url:'https://www.thefork.es/restaurante/da-enzo-al-29-r397448',
+   coords:[41.8868,12.4690],assigned:null},
+  {name:'Tonnarello',type:'Trattoria con terraza',zone:'Trastevere',price:'€€',
+   reserva:false,maps:'https://maps.google.com/?q=Tonnarello+Trastevere+Roma',
+   url:null,coords:[41.8871,12.4683],assigned:null},
+  {name:'Osteria dell\'Angelo',type:'Cocina romana tradicional',zone:'Prati',price:'€€',
+   reserva:true,maps:'https://maps.google.com/?q=Osteria+dell+Angelo+Roma+Prati',
+   url:null,coords:[41.9011,12.4677],assigned:null},
+  {name:'Grotte del Teatro di Pompeo',type:'Restaurante histórico',zone:"Campo de' Fiori",price:'€€€',
+   reserva:true,maps:'https://maps.google.com/?q=Grotte+del+Teatro+di+Pompeo+Roma',
+   url:null,coords:[41.8960,12.4720],assigned:null},
+  {name:'Poldo e Gianna',type:'Trattoria tradicional',zone:'Centro histórico',price:'€€',
+   reserva:true,maps:'https://maps.google.com/?q=Poldo+e+Gianna+Roma',
+   url:null,coords:[41.8965,12.4700],assigned:null},
+  {name:'Caffè Sant\'Eustachio',type:'Café histórico · El mejor café de Roma',zone:'Panteón',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Caffe+Sant+Eustachio+Roma',
+   url:null,coords:[41.8983,12.4761],assigned:null},
+  {name:'Antico Caffè Greco',type:'Café histórico desde 1760',zone:'Via Condotti (Spagna)',price:'€€€',
+   reserva:false,maps:'https://maps.google.com/?q=Antico+Caffe+Greco+Roma',
+   url:null,coords:[41.9054,12.4821],assigned:null},
+  {name:'Galleria Iginio Massari',type:'Pastelería · Maritozzo top de Roma',zone:'Via del Corso',price:'€€',
+   reserva:false,maps:'https://maps.google.com/?q=Galleria+Iginio+Massari+Roma',
+   url:null,coords:[41.9003,12.4818],assigned:null},
+  {name:'Gelateria del Teatro',type:'Gelato artesanal',zone:'Navona',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Gelateria+del+Teatro+Roma',
+   url:null,coords:[41.9001,12.4739],assigned:null},
+  {name:'Giolitti',type:'Gelatería histórica',zone:'Panteón',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Gelateria+Giolitti+Roma',
+   url:null,coords:[41.8989,12.4793],assigned:null},
+  {name:'Suplizio',type:'Supplì · Fritura típica romana',zone:'Centro histórico',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Suplizio+Roma',
+   url:null,coords:[41.8975,12.4744],assigned:null},
+  {name:'Forno Roscioli',type:'Pizza al taglio · Panadería artesanal',zone:"Campo de' Fiori",price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Forno+Roscioli+Roma',
+   url:null,coords:[41.8961,12.4726],assigned:null},
+  {name:'Mordi e Vai',type:'Bocadillos romanos tradicionales',zone:'Mercado de Testaccio',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Mordi+e+Vai+Testaccio+Roma',
+   url:null,coords:[41.8784,12.4762],assigned:null},
+  {name:'Supplì Roma',type:'Supplì (fritura)',zone:'Trastevere',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Suppli+Roma+Trastevere',
+   url:null,coords:[41.8884,12.4714],assigned:null},
+  {name:'Er Buchetto',type:'Bocadillo de porchetta clásico',zone:'Mercado de Testaccio',price:'€',
+   reserva:false,maps:'https://maps.google.com/?q=Er+Buchetto+Roma+Testaccio',
+   url:null,coords:[41.8780,12.4758],assigned:null},
+];
+
+const CHECKLIST = [
+  {day:0,group:'Documentación',items:[
+    {icon:'🪪',label:'DNI o Pasaporte'},
+    {icon:'📱',label:'Tarjetas de embarque'},
+    {icon:'📋',label:'Seguro de viaje'},
+  ]},
+  {day:0,group:'Equipaje',items:[
+    {icon:'🧳',label:'Maleta facturada lista'},
+    {icon:'🎒',label:'Mochila de mano preparada'},
+    {icon:'🔌',label:'Cargador de móvil'},
+    {icon:'🔋',label:'Powerbank cargado'},
+    {icon:'🔌',label:'Adaptador de enchufe (Italia tipo F)'},
+  ]},
+  {day:0,group:'Finanzas',items:[
+    {icon:'💶',label:'Efectivo en euros'},
+    {icon:'💳',label:'Tarjeta bancaria (Visa/Mastercard)'},
+  ]},
+
+  {day:1,group:'Esencial',items:[
+    {icon:'💧',label:'Botella de agua'},
+    {icon:'🧴',label:'Protector solar'},
+    {icon:'🔋',label:'Powerbank cargado'},
+    {icon:'👟',label:'Calzado muy cómodo (día largo)'},
+    {icon:'🕶️',label:'Gafas de sol'},
+  ]},
+  {day:1,group:'Para el Coliseo',items:[
+    {icon:'📱',label:'Entradas del tour en el móvil'},
+    {icon:'🎧',label:'Auriculares para el guía'},
+  ]},
+  {day:1,group:'Extras',items:[
+    {icon:'💶',label:'Efectivo / tarjeta'},
+    {icon:'🍫',label:'Snack para el tour (3 horas)'},
+  ]},
+
+  {day:2,group:'Esencial',items:[
+    {icon:'💧',label:'Botella de agua'},
+    {icon:'🧴',label:'Protector solar'},
+    {icon:'🔋',label:'Powerbank cargado'},
+    {icon:'👟',label:'Calzado cómodo'},
+    {icon:'🕶️',label:'Gafas de sol'},
+  ]},
+  {day:2,group:'Para el Panteón y el tour',items:[
+    {icon:'💶',label:'5 € para la entrada del Panteón'},
+    {icon:'🧥',label:'Chaqueta o abrigo (tour nocturno)'},
+    {icon:'💶',label:'Propina para el guía (free tour)'},
+  ]},
+  {day:2,group:'Extras',items:[
+    {icon:'💳',label:'Tarjeta / efectivo'},
+  ]},
+
+  {day:3,group:'Vuelo',items:[
+    {icon:'🪪',label:'DNI o Pasaporte'},
+    {icon:'📱',label:'Tarjeta de embarque'},
+    {icon:'🧳',label:'Maleta lista y cerrada'},
+    {icon:'⏰',label:'Salir del hotel a las 13:15'},
+  ]},
+  {day:3,group:'Última mañana',items:[
+    {icon:'💧',label:'Botella de agua'},
+    {icon:'🔋',label:'Powerbank cargado'},
+    {icon:'💶',label:'Efectivo / tarjeta'},
+    {icon:'🛍️',label:'Espacio en la mochila para souvenirs'},
+  ]},
+];
+
+const INFO = [
+  {icon:'🚆',label:'Aeropuerto\n→ Centro',data:{
+    title:'Fiumicino → Roma',
+    blocks:[
+      {t:'🚆 Leonardo Express (recomendado)',
+       b:'Sale cada 15-30 min. Directo al centro (Roma Termini). Duración: ~32 min. Precio: <strong>~15 €/persona</strong>. Compra el billete en las máquinas antes de subir.'},
+      {t:'🚌 Bus (más económico)',
+       b:'Varias compañías (Terravision, SIT Bus). Precio: <strong>~6-7 €</strong>. Duración: 60-90 min según el tráfico. Para en distintos puntos del centro.'},
+      {t:'🚕 Taxi (tarifa fija)',
+       b:'Tarifa oficial fija aeropuerto → centro: <strong>~50 € por coche</strong> (no por persona). Útil con mucho equipaje o llegada nocturna.'},
+    ]}},
+  {icon:'🚇',label:'Metro\nde Roma',data:{
+    title:'Metro de Roma',
+    blocks:[
+      {t:'Líneas principales',
+       b:'<strong>Línea A</strong> (naranja): Termini → Spagna → Ottaviano (Vaticano).<br><strong>Línea B</strong> (azul): Termini → Colosseo → Laurentina.'},
+      {t:'Tarifas',
+       b:'Billete sencillo: <strong>1,50 €</strong> (válido 100 min en metro + bus).<br>Bono 10 viajes: <strong>12 €</strong>.<br>Bono 48h: <strong>6 €</strong> · Bono 72h: <strong>9 €</strong>.'},
+      {t:'Horario',
+       b:'Lunes–jueves y domingo: <strong>05:30–23:30</strong><br>Viernes y sábado: <strong>05:30–01:30</strong>'},
+      {t:'⚠️ Ojo',
+       b:'El metro de Roma es pequeño. Muchos sitios del centro histórico se alcanzan mejor caminando.'},
+    ]}},
+  {icon:'🚨',label:'Emergencias',data:{
+    title:'Emergencias',
+    rows:[
+      {l:'🆘 Emergencias generales',v:'112'},
+      {l:'🚑 Ambulancia',v:'118'},
+      {l:'🚒 Bomberos',v:'115'},
+      {l:'🚔 Policía',v:'113'},
+      {l:'🏥 Hospital Gemelli',v:'+39 06 30151'},
+      {l:'🏛️ Embajada de España en Roma',v:'+39 06 6840401'},
+      {l:'📞 Atención a españoles',v:'+39 06 6840403'},
+    ]}},
+  {icon:'💰',label:'Propinas',data:{
+    title:'Propinas en Italia',
+    blocks:[
+      {t:'¿Es obligatorio?',
+       b:'No. La propina no es obligatoria. Muchos locales cobran ya el <strong>coperto</strong> (cubierto, ~1-3 €/persona) que aparece en la cuenta.'},
+      {t:'¿Cuándo y cuánto?',
+       b:'<strong>Restaurantes:</strong> Redondear o dejar un 5-10% si el servicio fue bueno.<br><strong>Bares:</strong> Dejar los céntimos del cambio en la barra es suficiente.<br><strong>Free tour:</strong> La propina <em>es</em> el sueldo del guía. Entre <strong>5-15 €/persona</strong>.'},
+    ]}},
+  {icon:'🇮🇹',label:'Frases\nútiles',data:{
+    title:'Frases útiles en italiano',
+    rows:[
+      {l:'Hola / Buenos días',v:'Ciao / Buongiorno'},
+      {l:'Por favor',v:'Per favore'},
+      {l:'Gracias',v:'Grazie'},
+      {l:'De nada',v:'Prego'},
+      {l:'Perdona / Disculpa',v:'Scusa / Mi scusi'},
+      {l:'¿Cuánto cuesta?',v:'Quanto costa?'},
+      {l:'La cuenta',v:'Il conto, per favore'},
+      {l:'¿Dónde está...?',v:"Dov'è...?"},
+      {l:'No entiendo',v:'Non capisco'},
+      {l:'¿Hablas español?',v:'Parli spagnolo?'},
+      {l:'Un café, por favor',v:'Un caffè, per favore'},
+      {l:'¡Salud!',v:'Salute! / Cin cin!'},
+    ]}},
+  {icon:'🕐',label:'Horarios',data:{
+    title:'Horarios en Roma',
+    blocks:[
+      {t:'☕ Bares (desayuno)',b:'De <strong>07:00 a 10:30</strong>. Los italianos desayunan de pie en la barra. Sentarse en terraza sube el precio.'},
+      {t:'🍝 Restaurantes (almuerzo)',b:'De <strong>12:30 a 15:00</strong>. La cocina cierra puntual, normalmente a las 14:30-15:00.'},
+      {t:'🍷 Restaurantes (cena)',b:'De <strong>19:30 a 23:00</strong>. Antes de las 19:30 raramente están abiertos.'},
+      {t:'🛍️ Comercios',b:'De <strong>09:00 a 13:00</strong> y de <strong>16:00 a 20:00</strong>. Muchos cierran los domingos.'},
+      {t:'🏛️ Museos y monumentos',b:'Cada uno tiene su horario. El Panteón abre desde las 09:00. Conviene reservar entrada online.'},
+    ]}},
+  {icon:'💳',label:'Moneda\ny pagos',data:{
+    title:'Moneda y pagos',
+    blocks:[
+      {t:'💶 Moneda',b:'Italia usa el <strong>euro (€)</strong>. No necesitáis cambiar divisa.'},
+      {t:'💳 Tarjeta',b:'Visa y Mastercard se aceptan en casi todos los sitios. American Express tiene menos cobertura.'},
+      {t:'💵 Efectivo',b:'Llevar siempre algo de efectivo. Algunos bares, taxis y mercadillos solo aceptan efectivo. Los cajeros (bancomat) son fáciles de encontrar.'},
+      {t:'⚠️ Cuidado',b:'En zonas turísticas (Trevi, Coliseo) hay personas ofreciendo cambio de moneda: <strong>evitadlas siempre</strong>.'},
+    ]}},
+];
+
+const WMO = {
+  0:{i:'☀️',d:'Despejado'},1:{i:'🌤️',d:'Mayormente despejado'},
+  2:{i:'⛅',d:'Parcialmente nublado'},3:{i:'☁️',d:'Nublado'},
+  45:{i:'🌫️',d:'Niebla'},48:{i:'🌫️',d:'Niebla con escarcha'},
+  51:{i:'🌦️',d:'Llovizna ligera'},53:{i:'🌦️',d:'Llovizna'},
+  61:{i:'🌧️',d:'Lluvia ligera'},63:{i:'🌧️',d:'Lluvia moderada'},
+  65:{i:'🌧️',d:'Lluvia intensa'},80:{i:'🌦️',d:'Chubascos ligeros'},
+  81:{i:'⛈️',d:'Chubascos'},95:{i:'⛈️',d:'Tormenta'},
+};
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let curSec = 'itinerario';
+let curDay = 0;
+let mapMode = 'all';
+let mapDayF = 0;
+let lmap = null;
+let lmarkers = [];
+let ckDay = 0;
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+function init() {
+  resetChecksIfNewDay();
+  renderDayTabs();
+  renderTimeline();
+  renderMapDayBtns();
+  renderMapLegend();
+  renderRestaurants(RESTAURANTS);
+  renderInfoGrid();
+  renderCkTabs();
+  renderChecklist();
+  fetchWeather();
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function go(sec) {
+  curSec = sec;
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('s-'+sec).classList.add('active');
+  const order = ['itinerario','mapa','restaurantes','info','checklist','tiempo'];
+  const idx = order.indexOf(sec);
+  document.querySelectorAll('.nav-btn')[idx]?.classList.add('active');
+  if (sec === 'mapa' && !lmap) setTimeout(initMap, 80);
+}
+
+// ═══════════════════════════════════════════════════════
+//  ITINERARIO
+// ═══════════════════════════════════════════════════════
+function renderDayTabs() {
+  document.getElementById('day-tabs').innerHTML = DS.map((d,i)=>`
+    <button class="dtab${i===curDay?' active':''}"
+      style="${i===curDay?'border-bottom-color:'+DC[i]+';color:'+DC[i]:''}"
+      onclick="selDay(${i})">${d}</button>
+  `).join('');
+}
+function selDay(d){ curDay=d; renderDayTabs(); renderTimeline(); }
+
+function renderTimeline() {
+  const items = ITINERARY.filter(it=>it.day===curDay);
+  const col = DC[curDay];
+  document.getElementById('timeline').innerHTML = items.map((it,idx)=>{
+    const tags=[];
+    if(it.price){
+      const free=it.price==='Gratuito';
+      tags.push(`<span class="tag ${free?'tg-free':'tg-price'}">${free?'🆓 Gratuito':'💶 '+it.price}</span>`);
+    }
+    if(it.reserved) tags.push(`<span class="tag tg-ok">✅ Reservado</span>`);
+    else if(it.booking) tags.push(`<span class="tag tg-warn">⚠️ Conviene reservar</span>`);
+    if(it.walk) tags.push(`<span class="tag tg-walk">🚶 ${it.walk}</span>`);
+    if(it.maps) tags.push(`<a href="${it.maps}" target="_blank" class="tag tg-map">📍 Ver en Maps</a>`);
+
+    return `<div class="tl-item" style="animation-delay:${idx*.045}s">
+      <div class="tl-line"></div>
+      <div class="tl-left">
+        <div class="tl-time">${it.time}</div>
+        <div class="tl-dot${['visit','food'].includes(it.type)?' fill':''}" style="--dot-c:${col}"></div>
+      </div>
+      <div class="tl-card">
+        <div class="tl-ch">
+          <span class="tl-icon">${it.icon}</span>
+          <span class="tl-name">${it.name}</span>
+        </div>
+        <div class="tl-detail">${it.detail}</div>
+        ${tags.length?`<div class="tags">${tags.join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAPA
+// ═══════════════════════════════════════════════════════
+function renderMapDayBtns() {
+  document.getElementById('map-day-btns').innerHTML = DS.map((d,i)=>`
+    <button class="mdb${i===mapDayF?' active':''}"
+      style="${i===mapDayF?'background:'+DC[i]:''}"
+      onclick="selMapDay(${i})">${d}</button>
+  `).join('');
+}
+function renderMapLegend() {
+  document.getElementById('map-legend').innerHTML = DS.map((d,i)=>`
+    <div class="leg-item">
+      <div class="leg-dot" style="background:${DC[i]}"></div><span>${d}</span>
+    </div>
+  `).join('');
+}
+function setMapMode(m) {
+  mapMode=m;
+  document.getElementById('tog-all').classList.toggle('active',m==='all');
+  document.getElementById('tog-day').classList.toggle('active',m==='day');
+  document.getElementById('map-day-btns').style.display=m==='day'?'flex':'none';
+  updateMarkers();
+}
+function selMapDay(d){ mapDayF=d; renderMapDayBtns(); updateMarkers(); }
+
+function initMap() {
+  if(lmap) return;
+  lmap = L.map('map',{zoomControl:true}).setView([41.8986,12.4769],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap'
+  }).addTo(lmap);
+  updateMarkers();
+}
+function updateMarkers() {
+  if(!lmap) return;
+  lmarkers.forEach(m=>m.remove()); lmarkers=[];
+  ITINERARY
+    .filter(it=>it.coords && (mapMode==='all' || it.day===mapDayF))
+    .forEach(it=>{
+      const c=DC[it.day];
+      const icon=L.divIcon({
+        html:`<div style="width:13px;height:13px;border-radius:50%;background:${c};border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.3)"></div>`,
+        className:'', iconSize:[13,13], iconAnchor:[6,6]
+      });
+      const m=L.marker(it.coords,{icon}).addTo(lmap)
+        .bindPopup(`<strong>${it.name}</strong><br><span style="font-size:12px">${it.time}${it.price?'<br>'+it.price:''}</span>`,{maxWidth:180});
+      lmarkers.push(m);
+    });
+}
+
+// ═══════════════════════════════════════════════════════
+//  RESTAURANTES
+// ═══════════════════════════════════════════════════════
+function renderRestaurants(list) {
+  document.getElementById('rest-list').innerHTML = list.map((r,i)=>`
+    <div class="rest-card" style="animation-delay:${i*.04}s">
+      ${r.assigned?`<div class="rest-assigned">📌 ${r.assigned}</div>`:''}
+      <div class="rest-row">
+        <div>
+          <div class="rest-name">${r.name}</div>
+          <div class="rest-type">${r.type}</div>
+          <div class="rest-zone">📍 ${r.zone}</div>
+        </div>
+        <div class="rest-price">${r.price}</div>
+      </div>
+      ${r.reserva?`<div><span class="rest-badge rb-warn">⚠️ Reservar recomendado</span></div>`:''}
+      <div class="rest-actions">
+        ${r.maps?`<a href="${r.maps}" target="_blank" class="rest-btn maps">📍 Google Maps</a>`:''}
+        ${r.url?`<a href="${r.url}" target="_blank" class="rest-btn reserva">🔗 Reservar</a>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+function sortByProx() {
+  if(!navigator.geolocation){ alert('Tu navegador no soporta geolocalización'); return; }
+  document.getElementById('rest-sub').textContent = 'Obteniendo ubicación...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude:lat,longitude:lon}=pos.coords;
+    const sorted=[...RESTAURANTS].sort((a,b)=>hav(lat,lon,a.coords[0],a.coords[1])-hav(lat,lon,b.coords[0],b.coords[1]));
+    document.getElementById('rest-sub').textContent='Ordenados por proximidad a tu ubicación';
+    renderRestaurants(sorted);
+  },()=>{ document.getElementById('rest-sub').textContent='No se pudo obtener la ubicación'; });
+}
+function hav(a,b,c,d){
+  const R=6371, dl=(c-a)*Math.PI/180, dl2=(d-b)*Math.PI/180;
+  const x=Math.sin(dl/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dl2/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+// ═══════════════════════════════════════════════════════
+//  INFO / MODAL
+// ═══════════════════════════════════════════════════════
+function renderInfoGrid() {
+  document.getElementById('info-grid').innerHTML = INFO.map((b,i)=>`
+    <div class="info-card" onclick="openInfo(${i})" style="animation-delay:${i*.05}s">
+      <div class="info-icon">${b.icon}</div>
+      <div class="info-lbl">${b.label}</div>
+    </div>
+  `).join('');
+}
+function openInfo(i) {
+  const d = INFO[i].data;
+  let h = `<div class="modal-title">${INFO[i].icon} <span>${d.title}</span>
+    <button class="modal-close" onclick="closeModal()">✕</button></div>`;
+  if(d.rows) {
+    h += d.rows.map(r=>`<div class="m-row"><span class="m-row-l">${r.l}</span><span class="m-row-r">${r.v}</span></div>`).join('');
+  }
+  if(d.blocks) {
+    d.blocks.forEach(b=>{
+      h+=`<div class="m-block">`;
+      if(b.t) h+=`<div class="m-block-title">${b.t}</div>`;
+      h+=`<div class="m-block-text">${b.b}</div></div>`;
+    });
+  }
+  document.getElementById('modal-body').innerHTML=h;
+  document.getElementById('modal-ov').classList.add('open');
+}
+function closeModal(e) {
+  if(!e || e.target===document.getElementById('modal-ov'))
+    document.getElementById('modal-ov').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHECKLIST
+// ═══════════════════════════════════════════════════════
+function ckKey(day,group,idx){ return `ck_${day}_${group}_${idx}`; }
+function resetChecksIfNewDay() {
+  const today=new Date().toDateString();
+  if(localStorage.getItem('ck_date')!==today){
+    Object.keys(localStorage).filter(k=>k.startsWith('ck_')&&k!=='ck_date')
+      .forEach(k=>localStorage.removeItem(k));
+    localStorage.setItem('ck_date',today);
+  }
+}
+function renderCkTabs() {
+  document.getElementById('ck-tabs').innerHTML = DS.map((d,i)=>`
+    <button class="dtab${i===ckDay?' active':''}"
+      style="${i===ckDay?'border-bottom-color:'+DC[i]+';color:'+DC[i]:''}"
+      onclick="selCkDay(${i})">${d}</button>
+  `).join('');
+}
+function selCkDay(d){ ckDay=d; renderCkTabs(); renderChecklist(); }
+function renderChecklist() {
+  const groups=CHECKLIST.filter(g=>g.day===ckDay);
+  let total=0,checked=0;
+  groups.forEach(g=>g.items.forEach((_,i)=>{total++;if(localStorage.getItem(ckKey(ckDay,g.group,i))==='1')checked++;}));
+  const pct=total>0?(checked/total*100):0;
+  document.getElementById('ck-prog').textContent=`${checked} de ${total} preparados`;
+  document.getElementById('ck-bar').style.width=pct+'%';
+  document.getElementById('ck-list').innerHTML=groups.map(g=>`
+    <div class="ck-group">
+      <div class="ck-group-title">${g.group}</div>
+      ${g.items.map((it,i)=>{
+        const done=localStorage.getItem(ckKey(ckDay,g.group,i))==='1';
+        return `<div class="ck-item${done?' done':''}" onclick="toggleCk('${ckKey(ckDay,g.group,i)}')">
+          <div class="ck-box">${done?'✓':''}</div>
+          <span class="ck-icon">${it.icon}</span>
+          <span class="ck-label">${it.label}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+function toggleCk(k){
+  localStorage.setItem(k,localStorage.getItem(k)==='1'?'0':'1');
+  renderChecklist();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TIEMPO
+// ═══════════════════════════════════════════════════════
+function wxTip(code,tmax){
+  if(code<=1) return tmax>25?'☀️ Protector solar imprescindible. Hidratación constante.':'😊 Día perfecto para pasear. No olvides las gafas de sol.';
+  if(code<=3) return '🧥 Nubes a ratos. Lleva una chaqueta ligera por si refresca.';
+  if(code<61)  return '🌫️ Posible niebla matinal. Suele despejar a media mañana.';
+  if(code<80)  return '☂️ Lluvia probable. Lleva paraguas o chubasquero.';
+  return '⛈️ Chubascos posibles. Paraguas imprescindible y ropa impermeable.';
+}
+async function fetchWeather(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=41.9028&longitude=12.4964&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome&start_date=2025-05-08&end_date=2025-05-11');
+    const d=await r.json();
+    const {time,weathercode,temperature_2m_max:hi,temperature_2m_min:lo}=d.daily;
+    document.getElementById('wx-wrap').innerHTML=time.map((t,i)=>{
+      const w=WMO[weathercode[i]]||{i:'🌡️',d:'Variable'};
+      const tmax=Math.round(hi[i]);const tmin=Math.round(lo[i]);
+      return `<div class="wx-card" style="animation-delay:${i*.08}s">
+        <div class="wx-day" style="color:${DC[i]}">${DS[i]}</div>
+        <div class="wx-date">${DN[i]}</div>
+        <div class="wx-main">
+          <div class="wx-ico">${w.i}</div>
+          <div>
+            <div class="wx-desc">${w.d}</div>
+            <div class="wx-temps">
+              <span class="wx-hi">↑ ${tmax}°C</span>
+              <span class="wx-lo">↓ ${tmin}°C</span>
+            </div>
+          </div>
+        </div>
+        <div class="wx-tip">${wxTip(weathercode[i],tmax)}</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    document.getElementById('wx-wrap').innerHTML='<div class="wx-loading">No se pudo cargar la previsión.<br>Comprueba tu conexión a internet.</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
